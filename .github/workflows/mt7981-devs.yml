@@ -1,4 +1,4 @@
-name: Build
+name: build-mt7981
 
 on:
   repository_dispatch:
@@ -12,14 +12,12 @@ on:
 env:
   REPO_URL: https://github.com/hanwckf/immortalwrt-mt798x
   REPO_BRANCH: openwrt-21.02
-  FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
   TZ: Asia/Shanghai
-  DEVICE: CMCC-RAX3000M
+  DEVICE: mt7981
   UPLOAD_OUTPUT: true
 
 jobs:
-   _360t7:
+   _immortalwrt_jobs:
     runs-on: ubuntu-20.04
     permissions:
       contents: write
@@ -50,17 +48,11 @@ jobs:
         git clone $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-
     - name: 配置 Feeds
       run: |
-        #cp -f $GITHUB_WORKSPACE/.config $GITHUB_WORKSPACE/openwrt/
         cd openwrt
-        #echo "src-git kenzo https://github.com/kenzok8/openwrt-packages" >> ./feeds.conf.default
-        #echo "src-git small https://github.com/kenzok8/small" >> ./feeds.conf.default
         ./scripts/feeds update -a
         ./scripts/feeds install -a
-        #cp -f $GITHUB_WORKSPACE/.config $GITHUB_WORKSPACE/openwrt/
-        #./scripts/feeds install -a
         cp -f ./defconfig/mt7981-ax3000.config .config
 
     - name: 修改 Lan IP
@@ -95,12 +87,25 @@ jobs:
         cd openwrt/bin/targets/*/*
         rm -rf packages
     
-    - name: 发布固件至 Release
+    - name: 发布固件至Release
       uses: ncipollo/release-action@v1
       with:
         tag: "${{ env.DEVICE }}--${{ env.FILE_DATE }}"
         artifacts: "openwrt/bin/targets/*/*/*"
         body: |
-          # 未测试×
-          
           IP: 192.168.123.1 | Password: none
+
+    - name: 清除workflow历史记录
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        retain_days: 0
+        keep_minimum_runs: 2
+
+    - name: 清除旧Releases包
+      uses: dev-drprasad/delete-older-releases@master
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      with:
+        keep_latest: 10
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
