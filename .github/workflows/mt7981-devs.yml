@@ -94,18 +94,3 @@ jobs:
         artifacts: "openwrt/bin/targets/*/*/*"
         body: |
           IP: 192.168.123.1 | Password: none
-
-    - name: 清除workflow历史记录
-      uses: Mattraks/delete-workflow-runs@main
-      with:
-        retain_days: 0
-        keep_minimum_runs: 2
-
-    - name: 清除旧Releases包
-      uses: dev-drprasad/delete-older-releases@master
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
-      with:
-        keep_latest: 10
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
